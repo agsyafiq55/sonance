@@ -20,6 +20,7 @@ export function useTuner() {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const detectorRef = useRef<ReturnType<typeof createDetector> | null>(null);
+  const detectRef = useRef<() => void>(null);
 
   const detect = useCallback(() => {
     const analyser = analyserRef.current;
@@ -32,8 +33,10 @@ export function useTuner() {
     const result = analyzePitch(buffer, detector);
     setState((prev) => ({ ...prev, result }));
 
-    rafRef.current = requestAnimationFrame(detect);
+    rafRef.current = requestAnimationFrame(() => detectRef.current?.());
   }, []);
+
+  detectRef.current = detect;
 
   const start = useCallback(async () => {
     try {
@@ -52,7 +55,7 @@ export function useTuner() {
       detectorRef.current = createDetector(audioContext.sampleRate);
 
       setState({ active: true, result: null, error: null });
-      rafRef.current = requestAnimationFrame(detect);
+      detectRef.current?.();
     } catch {
       setState({
         active: false,
@@ -60,7 +63,7 @@ export function useTuner() {
         error: "Microphone access denied. Please allow microphone permissions.",
       });
     }
-  }, [detect]);
+  }, []);
 
   const stop = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
