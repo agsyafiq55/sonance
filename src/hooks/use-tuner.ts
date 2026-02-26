@@ -36,7 +36,9 @@ export function useTuner() {
     rafRef.current = requestAnimationFrame(() => detectRef.current?.());
   }, []);
 
-  detectRef.current = detect;
+  useEffect(() => {
+    detectRef.current = detect;
+  }, [detect]);
 
   const start = useCallback(async () => {
     try {
