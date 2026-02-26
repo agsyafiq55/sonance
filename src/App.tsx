@@ -11,7 +11,7 @@ export default function App() {
           Sonance
         </h1>
 
-        <TunerDisplay result={result} />
+        <TunerDisplay result={result} active={active} />
 
         {error && (
           <p className="text-center text-sm text-red-400">{error}</p>

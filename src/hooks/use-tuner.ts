@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type PitchResult, analyzePitch, createDetector } from "../lib/pitch";
+import {
+  type PitchResult,
+  analyzePitch,
+  createDetector,
+  getRMS,
+} from "../lib/pitch";
+
+const HOLD_DURATION_MS = 5000;
+const NULL_STREAK_THRESHOLD = 15;
 
 export interface TunerState {
   active: boolean;
@@ -21,17 +29,35 @@ export function useTuner() {
   const rafRef = useRef<number>(0);
   const detectorRef = useRef<ReturnType<typeof createDetector> | null>(null);
   const detectRef = useRef<() => void>(null);
+  const bufferRef = useRef<Float32Array<ArrayBuffer> | null>(null);
+  const lastDetectionRef = useRef<number>(0);
+  const nullStreakRef = useRef<number>(0);
 
   const detect = useCallback(() => {
     const analyser = analyserRef.current;
     const detector = detectorRef.current;
-    if (!analyser || !detector) return;
+    const buffer = bufferRef.current;
+    if (!analyser || !detector || !buffer) return;
 
-    const buffer = new Float32Array(analyser.fftSize);
     analyser.getFloatTimeDomainData(buffer);
-
     const result = analyzePitch(buffer, detector);
-    setState((prev) => ({ ...prev, result }));
+
+    if (result) {
+      nullStreakRef.current = 0;
+      lastDetectionRef.current = performance.now();
+      setState((prev) => ({ ...prev, result }));
+    } else {
+      nullStreakRef.current++;
+      const rms = getRMS(buffer);
+      const signalPresent = rms > 0.005;
+      const elapsed = performance.now() - lastDetectionRef.current;
+
+      if (signalPresent && nullStreakRef.current < NULL_STREAK_THRESHOLD) {
+        // Signal exists but YIN missed this frame -- keep last result
+      } else if (elapsed > HOLD_DURATION_MS) {
+        setState((prev) => (prev.result ? { ...prev, result: null } : prev));
+      }
+    }
 
     rafRef.current = requestAnimationFrame(() => detectRef.current?.());
   }, []);
@@ -47,6 +73,7 @@ export function useTuner() {
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0;
 
       source.connect(analyser);
 
@@ -55,6 +82,9 @@ export function useTuner() {
       sourceRef.current = source;
       streamRef.current = stream;
       detectorRef.current = createDetector(audioContext.sampleRate);
+      bufferRef.current = new Float32Array(analyser.fftSize);
+      lastDetectionRef.current = performance.now();
+      nullStreakRef.current = 0;
 
       setState({ active: true, result: null, error: null });
       detectRef.current?.();
@@ -79,6 +109,7 @@ export function useTuner() {
     sourceRef.current = null;
     streamRef.current = null;
     detectorRef.current = null;
+    bufferRef.current = null;
 
     setState({ active: false, result: null, error: null });
   }, []);

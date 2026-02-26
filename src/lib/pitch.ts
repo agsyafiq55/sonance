@@ -18,7 +18,7 @@ export interface PitchResult {
 }
 
 export function createDetector(sampleRate: number) {
-  return YIN({ sampleRate });
+  return YIN({ sampleRate, threshold: 0.3, probabilityThreshold: 0.4 });
 }
 
 export function findClosestNote(frequency: number): TuningNote {
@@ -45,12 +45,23 @@ export function centsFromTarget(
   return 1200 * Math.log2(detected / reference);
 }
 
+export function getRMS(buffer: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    sum += buffer[i] * buffer[i];
+  }
+  return Math.sqrt(sum / buffer.length);
+}
+
 export function analyzePitch(
   buffer: Float32Array,
   detector: ReturnType<typeof YIN>,
 ): PitchResult | null {
+  const rms = getRMS(buffer);
+  if (rms < 0.005) return null;
+
   const frequency = detector(buffer);
-  if (frequency === null || frequency < 60 || frequency > 400) return null;
+  if (frequency === null || frequency < 55 || frequency > 500) return null;
 
   const note = findClosestNote(frequency);
   const cents = Math.round(centsFromTarget(frequency, note.frequency));
