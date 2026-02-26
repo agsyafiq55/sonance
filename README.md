@@ -1,6 +1,8 @@
 # 𝐒𝐨𝐧𝐚𝐧𝐜𝐞🦇
 
-An open-source, web-based **guitar tuner** that uses the [YIN algorithm]( [http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf](http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf)) and your device's microphone to detect pitch in real time.
+An open-source, web-based **guitar tuner** that uses the [YIN algorithm](http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf) and your device's microphone to detect pitch in real time.
+
+![Sonance tuner screenshot](./assets/screenshot.png)
 
 ## Standard Tuning
 
