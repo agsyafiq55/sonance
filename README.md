@@ -117,4 +117,4 @@ Contributions are welcome. Here's how to get started:
 
 ## License
 
-MIT
+General Public License (GPL)
